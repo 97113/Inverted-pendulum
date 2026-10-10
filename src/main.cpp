@@ -1,6 +1,6 @@
 // =============================================================================
 //  車輪型倒立振子ラジコン
-//    M5Stack Core2 + PwrCAN Module 13.2 + RobStride EduLite 02 x2
+//    M5Stack Core2 + CAN Unit (CA-IS3050G) + RobStride EduLite 02 x2
 //    操縦: Xbox Series X|S コントローラ (BLE)
 // =============================================================================
 //  タスク構成
@@ -212,6 +212,10 @@ void controlTask(void*) {
             g_message = "hold it upright before arming";
           } else if (!bothAlive) {
             g_message = "no motor feedback - check CAN wiring";
+          } else if (vbus <= 0.0f) {
+            g_message = "waiting for bus voltage reading";
+          } else if (vbus < cfg::kVbusMinVolts) {
+            g_message = "bus voltage too low - charge the pack";
           } else {
             g_motorL.resetAccumulatedAngle();
             g_motorR.resetAccumulatedAngle();

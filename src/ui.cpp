@@ -120,9 +120,19 @@ void render(const Telemetry& t) {
   c->setTextColor(TFT_WHITE, TFT_BLACK);
 
   y += 12;
+  // 母線電圧が低いと復帰能力が落ちるので目立たせる。
+  const uint16_t vbusColor =
+      t.busVoltage <= 0.0f            ? TFT_DARKGREY
+      : t.busVoltage < cfg::kVbusMinVolts  ? TFT_RED
+      : t.busVoltage < cfg::kVbusWarnVolts ? TFT_ORANGE
+                                           : TFT_WHITE;
+  c->setTextColor(vbusColor, TFT_BLACK);
   c->setCursor(6, y);
-  c->printf("VBUS %5.1fV  Core2 %4.2fV  PAD %3u%%  overrun %lu",
-            t.busVoltage, t.coreVoltage, t.padBattery,
+  c->printf("VBUS %5.1fV", t.busVoltage);
+  c->setTextColor(TFT_WHITE, TFT_BLACK);
+  c->setCursor(90, y);
+  c->printf("Core2 %4.2fV  PAD %3u%%  overrun %lu",
+            t.coreVoltage, t.padBattery,
             static_cast<unsigned long>(t.loopOverrun));
 
   // ---- DISARMED のときは IMU 生値を出す (軸の確認用) ----

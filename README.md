@@ -6,14 +6,18 @@ M5Stack Core2 と RobStride EduLite 02 × 2 で作る、Xbox コントローラ�
 | 役割 | 使用部品 |
 | --- | --- |
 | 制御 + 姿勢センサ | M5Stack Core2（内蔵 IMU） |
-| CAN + 電源 | M5Stack PwrCAN Module 13.2 |
+| CAN インタフェース | M5Stack CAN Unit（CA-IS3050G、Grove 接続） |
 | 駆動 | RobStride EduLite 02 × 2（CAN 1 Mbps / 29bit 拡張フレーム） |
 | 操縦 | Xbox Series X\|S コントローラ（BLE） |
-| 電源 | 18650 × 8 直列 |
+| 電源 | 18650 × 4 直列（12.8〜16.8 V） |
 
-> ⚠️ **PwrCAN Module 13.2 の電源入力は DC 9〜24 V です。**
-> 18650 8 直列（満充電 33.6 V）を直結するとモジュールが壊れます。
-> 必ず [docs/hardware.md](docs/hardware.md) の電源構成を読んでから配線してください。
+> ⚠️ **18650 4 直列では EduLite 02 の動作電圧範囲を下回る可能性が高いです。**
+> RobStride 02 系の下限は 24 V、EduLite 05 の下限は 15 V です。
+> 直列数の検討表と、母線電圧が低いと復帰能力が落ちる理由を
+> [docs/hardware.md](docs/hardware.md) にまとめてあります。配線前に読んでください。
+>
+> なお **CAN Unit はモータ電源を一切通しません**（Grove の 5 V だけで動く絶縁
+> トランシーバ）。代わりに **Core2 の給電を別途用意する必要があります**。
 
 ---
 
@@ -58,6 +62,8 @@ CAN は ESP32 内蔵の TWAI コントローラを直接使っているため、
 - モータが故障ビットを立てた
 - コントローラの通信が 500 ms 途絶えた（指令が中立に戻る。バランス制御は継続）
 
+また、母線電圧が `kVbusMinVolts`（既定 13.0 V）未満のときは ARM を拒否します。
+
 ---
 
 ## 画面表示
@@ -72,7 +78,7 @@ CAN は ESP32 内蔵の TWAI コントローラを直接使っているため、
 │ cmd fwd +0.50  turn +0.00          │  操縦入力
 │ out  L  +1.24   R  +1.31           │  車輪トルク指令 [N·m]
 │ M1 ok 32.4C f=00   M2 ok 31.8C f=00│  モータ状態（温度・故障ビット）
-│ VBUS  31.8V  Core2 4.05V  PAD  87% │  母線電圧・電池
+│ VBUS  16.2V  Core2 4.05V  PAD  87% │  母線電圧・電池
 └────────────────────────────────────┘
 ```
 
@@ -106,7 +112,7 @@ BLE のスキャンは内部で待ちが入るため、制御ループとは必�
 
 ## ドキュメント
 
-- [docs/hardware.md](docs/hardware.md) — 配線、電源、ディップスイッチ、初回通電チェック
+- [docs/hardware.md](docs/hardware.md) — 配線、電源、電池の直列数、Grove ポートと GPIO、初回通電チェック
 - [docs/tuning.md](docs/tuning.md) — 制御ゲインの調整手順と症状別の対処
 
 ---
@@ -119,6 +125,6 @@ BLE のスキャンは内部で待ちが入るため、制御ループとは必�
   RobStride 02 系の一般値（±4π rad、±44 rad/s、±17 N·m）を入れてあります。
   EduLite 02 のマニュアルの「パラメータ範囲」の表と必ず突き合わせてください。
   ここがずれると、トルク指令もフィードバックも定数倍ずれます。
-- **EduLite 02 の動作電圧範囲** — 18650 8 直列（24〜33.6 V）が範囲内かを確認してください。
-- **PwrCAN の絶縁トランシーバ側の電源** — `docs/hardware.md` の推奨構成
-  （DC-DC で 12 V を供給）で確認することを勧めます。
+- **EduLite 02 の動作電圧範囲** — 18650 4 直列（12.8〜16.8 V）が範囲内かを確認してください。
+  範囲外の場合は直列数を増やす必要があります（[docs/hardware.md](docs/hardware.md) に検討表あり）。
+  確認後は `config.h` の `kVbusMinVolts` / `kVbusWarnVolts` を実機の下限に合わせてください。
