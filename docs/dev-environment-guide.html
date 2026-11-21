@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>倒立振子 開発環境ガイド</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 左に工程ナビ（スマホでは上部）、右に手順本文。作業者プロファイルの値がコード例へ差し込まれる */
+:root{
+  --bg:#f3f5f6; --surface:#ffffff; --ink:#18222c; --muted:#5a6672; --line:#d6dde2;
+  --accent:#0b6e75; --accent-soft:#e0f0f1; --warn:#a85d00; --warn-soft:#fdf0dc;
+  --danger:#b3261e; --danger-soft:#fbe6e4; --ok:#1d7a3e; --ok-soft:#e2f3e7;
+  --code-bg:#1d2730; --code-fg:#e3eaef; --code-muted:#8fa1ae;
+  --f-body:"IBM Plex Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",Consolas,"BIZ UDGothic",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12181d; --surface:#1a2228; --ink:#e4eaee; --muted:#9aa7b1; --line:#2d3942;
+  --accent:#4fb8bf; --accent-soft:#183539; --warn:#e8a54b; --warn-soft:#3a2a12;
+  --danger:#f08a80; --danger-soft:#3d1c1a; --ok:#6cc98c; --ok-soft:#173222;
+  --code-bg:#0c1115; --code-fg:#dbe4ea; --code-muted:#7f909c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181d; --surface:#1a2228; --ink:#e4eaee; --muted:#9aa7b1; --line:#2d3942;
+  --accent:#4fb8bf; --accent-soft:#183539; --warn:#e8a54b; --warn-soft:#3a2a12;
+  --danger:#f08a80; --danger-soft:#3d1c1a; --ok:#6cc98c; --ok-soft:#173222;
+  --code-bg:#0c1115; --code-fg:#dbe4ea; --code-muted:#7f909c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.75}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,kbd{font-family:var(--f-mono);font-size:.88em}
+p code,li code,td code{background:var(--accent-soft);padding:.05em .35em;border-radius:3px}
+kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 .35em;background:var(--surface)}
+h1,h2,h3{line-height:1.35;text-wrap:balance}
+h1{font-size:1.9rem;margin:0}
+h2{font-size:1.4rem;margin:0 0 .25rem}
+h3{font-size:1.08rem;margin:1.6rem 0 .4rem}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;max-width:1240px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 80px}
+header.top{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:end;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.lede{color:var(--muted);max-width:62ch;margin:.4rem 0 0}
+.meter{min-width:220px}
+.meter .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.meter .bar span{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.meter small{color:var(--muted);font-variant-numeric:tabular-nums}
+nav.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;display:flex;flex-direction:column;gap:2px}
+nav.side a{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:.92rem}
+nav.side a:hover{background:var(--surface)}
+nav.side a.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+nav.side .n{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);min-width:1.6em}
+nav.side .done-mark{margin-left:auto;font-size:.75rem;color:var(--ok)}
+main{min-width:0;display:flex;flex-direction:column;gap:56px}
+section{scroll-margin-top:20px}
+section>header{display:flex;gap:14px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:16px}
+section>header .num{font-family:var(--f-mono);color:var(--accent);font-weight:600}
+section>header p{margin:0;color:var(--muted);font-size:.9rem}
+.prose{max-width:72ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+.profile{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.profile label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
+input[type=text],select{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;min-width:0;width:100%}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.seg button{font:inherit;font-size:.88rem;border:0;background:transparent;color:var(--ink);padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--surface)}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;margin:14px 0}
+.note.warn{border-color:var(--warn);background:var(--warn-soft)}
+.note.danger{border-color:var(--danger);background:var(--danger-soft)}
+.note strong:first-child{display:block}
+.scope-tag{display:inline-block;font-size:.72rem;font-family:var(--f-mono);padding:1px 7px;border-radius:10px;border:1px solid currentColor;color:var(--accent);margin-right:6px;vertical-align:2px}
+.scope-tag.personal{color:var(--warn)}
+/* checklists */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
+ol.steps>li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px 12px 14px;display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px}
+ol.steps>li.checked{border-color:var(--ok);background:linear-gradient(var(--ok-soft),var(--ok-soft)) left/4px 100% no-repeat,var(--surface)}
+ol.steps input[type=checkbox]{width:20px;height:20px;margin:3px 0 0;accent-color:var(--ok);cursor:pointer}
+ol.steps .t{font-weight:700}
+ol.steps .t::before{content:counter(s) ". ";font-family:var(--f-mono);color:var(--muted);font-weight:400}
+ol.steps .b{grid-column:2;min-width:0}
+ol.steps .b p{margin:.2rem 0}
+/* code */
+.code{position:relative;margin:10px 0;border-radius:6px;background:var(--code-bg);color:var(--code-fg)}
+.code .lbl{font-family:var(--f-mono);font-size:.72rem;color:var(--code-muted);padding:6px 12px 0;letter-spacing:.04em}
+.code pre{margin:0;padding:8px 12px 12px;overflow-x:auto;font-family:var(--f-mono);font-size:.82rem;line-height:1.6;white-space:pre}
+.code button.copy{position:absolute;top:6px;right:6px;font:inherit;font-size:.72rem;background:transparent;color:var(--code-muted);border:1px solid var(--code-muted);border-radius:4px;padding:1px 8px;cursor:pointer}
+.code button.copy:hover{color:var(--code-fg);border-color:var(--code-fg)}
+.code .ph{color:#f5c26b}
+.tbl{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;border-bottom:1px solid var(--line);padding:7px 10px;vertical-align:top}
+th{font-size:.78rem;color:var(--muted);font-weight:500;letter-spacing:.04em}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.grid2>*{min-width:0}
+.diagram{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.dg-box{fill:var(--bg);stroke:var(--ink);stroke-width:1.3}
+.dg-hl{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.dg-t{fill:var(--ink);font-family:var(--f-body);font-size:13px;font-weight:700}
+.dg-s{fill:var(--muted);font-family:var(--f-body);font-size:11.5px}
+.dg-l{stroke:var(--ink);stroke-width:1.5;fill:none}
+.dg-d{stroke:var(--warn);stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+.dg-lt{fill:var(--accent);font-family:var(--f-mono);font-size:11px}
+.dg-wt{fill:var(--warn);font-family:var(--f-mono);font-size:11px}
+/* gate */
+.gate{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:8px;font-weight:700;margin-top:12px;border:1px solid var(--danger);background:var(--danger-soft);color:var(--danger)}
+.gate.ready{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.gate .lamp{width:14px;height:14px;border-radius:50%;background:currentColor;flex:none}
+/* troubleshooting */
+details.ts{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 16px}
+details.ts+details.ts{margin-top:8px}
+details.ts summary{cursor:pointer;padding:11px 0;font-weight:500;list-style:none;display:flex;gap:10px;align-items:baseline}
+details.ts summary::before{content:"▸";color:var(--accent);transition:transform .15s}
+details.ts[open] summary::before{transform:rotate(90deg)}
+details.ts .cat{margin-left:auto;font-size:.72rem;font-family:var(--f-mono);color:var(--muted);white-space:nowrap}
+details.ts>div{padding:0 0 12px 20px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.tabs button{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:16px;padding:4px 14px;cursor:pointer}
+.tabs button[aria-selected=true]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:6px 14px;border-radius:6px;font-size:.85rem;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.small{font-size:.85rem;color:var(--muted)}
+.btn{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:5px 12px;cursor:pointer}
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:24px}
+  nav.side{position:static;flex-direction:row;flex-wrap:wrap;gap:4px}
+  nav.side a{padding:4px 10px;border:1px solid var(--line);font-size:.82rem}
+  nav.side .done-mark{margin-left:4px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <div class="eyebrow">M5Stack Core2 × RobStride EduLite 02 · Windows 作業者向け</div>
+    <h1>倒立振子 開発環境ガイド</h1>
+    <p class="lede">複数の作業者が各自の Windows PC から、ファームの編集・書込み、モータの操作、データの記録、実機での検証までを同じ手順で回せるようにするための手引きです。チェックした項目はこのブラウザに保存されます。</p>
+  </div>
+  <div class="meter" aria-live="polite">
+    <div class="small" style="margin-bottom:4px">チェック済み <b id="pct">0</b>%（<span id="cnt">0 / 0</span>）</div>
+    <div class="bar"><span id="bar"></span></div>
+    <button class="btn" id="resetChecks" style="margin-top:8px">チェックをすべて外す</button>
+    <span id="resetConfirm" hidden><button class="btn" id="resetYes" style="margin-top:8px;color:var(--danger)">本当に外す</button> <button class="btn" id="resetNo">やめる</button></span>
+  </div>
+</header>
+
+<nav class="side" id="nav" aria-label="目次">
+  <a href="#s0"><span class="n">00</span>全体像と作業者設定</a>
+  <a href="#s1"><span class="n">01</span>PC の環境構築</a>
+  <a href="#s2"><span class="n">02</span>チームでの運用</a>
+  <a href="#s3"><span class="n">03</span>編集・ビルド・書込み</a>
+  <a href="#s4"><span class="n">04</span>モータの操作</a>
+  <a href="#s5"><span class="n">05</span>データロギング</a>
+  <a href="#s6"><span class="n">06</span>実機検証</a>
+  <a href="#s7"><span class="n">07</span>トラブル対処</a>
+  <a href="#s8"><span class="n">08</span>今後の改善案</a>
+</nav>
+
+<main>
+
+<!-- ============================================================ 00 -->
+<section id="s0">
+  <header><span class="num">00</span><div><h2>全体像と作業者設定</h2><p>最初に自分の情報を入れると、以降のコマンド例がその値に置き換わります</p></div></header>
+
+  <div class="diagram" role="img" aria-label="構成図: Windows PC は GitHub とコードを共有し、USB-C で Core2 に書き込む。Core2 は Grove 経由で CAN Unit、CAN でモータ 2 台を制御する。Xbox コントローラは BLE で Core2 に接続。USB-CAN アダプタは初期設定時のみ PC とモータを直結する。">
+  <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+    <rect class="dg-hl" x="20" y="20" width="230" height="190" rx="8"/>
+    <text class="dg-t" x="36" y="44">作業者の Windows PC</text>
+    <text class="dg-s" x="36" y="70">・VS Code + PlatformIO（編集/書込み）</text>
+    <text class="dg-s" x="36" y="92">・Git for Windows（コード共有）</text>
+    <text class="dg-s" x="36" y="114">・シリアルモニタ / ロガー（記録）</text>
+    <text class="dg-s" x="36" y="136">・RobStride PC ツール（モータ設定）</text>
+    <text class="dg-s" x="36" y="170">各作業者が 1 台ずつ</text>
+
+    <rect class="dg-box" x="300" y="20" width="180" height="60" rx="8"/>
+    <text class="dg-t" x="316" y="45">GitHub</text>
+    <text class="dg-s" x="316" y="66">97113/Inverted-pendulum</text>
+
+    <rect class="dg-box" x="300" y="150" width="160" height="60" rx="8"/>
+    <text class="dg-t" x="316" y="175">M5Stack Core2</text>
+    <text class="dg-s" x="316" y="196">制御 200 Hz / 画面</text>
+
+    <rect class="dg-box" x="510" y="150" width="120" height="60" rx="8"/>
+    <text class="dg-t" x="524" y="175">CAN Unit</text>
+    <text class="dg-s" x="524" y="196">CA-IS3050G</text>
+
+    <rect class="dg-box" x="670" y="130" width="130" height="100" rx="8"/>
+    <text class="dg-t" x="684" y="158">EduLite 02 ×2</text>
+    <text class="dg-s" x="684" y="180">左 ID=1 / 右 ID=2</text>
+    <text class="dg-s" x="684" y="200">CAN 1 Mbps</text>
+
+    <rect class="dg-box" x="300" y="246" width="160" height="40" rx="8"/>
+    <text class="dg-t" x="316" y="271">Xbox コントローラ</text>
+
+    <rect class="dg-box" x="510" y="30" width="120" height="50" rx="8" style="stroke-dasharray:5 4"/>
+    <text class="dg-t" x="524" y="52">USB-CAN</text>
+    <text class="dg-s" x="524" y="70">アダプタ</text>
+
+    <path class="dg-l" d="M250 50 H300"/><text class="dg-lt" x="262" y="44">git</text>
+    <path class="dg-l" d="M250 180 H300"/><text class="dg-lt" x="256" y="174">USB-C</text>
+    <path class="dg-l" d="M460 180 H510"/><text class="dg-lt" x="466" y="174">Grove</text>
+    <path class="dg-l" d="M630 180 H670"/><text class="dg-lt" x="636" y="174">CAN</text>
+    <path class="dg-l" d="M380 246 V210" style="stroke-dasharray:2 3"/><text class="dg-lt" x="388" y="232">BLE</text>
+    <path class="dg-d" d="M250 110 H570 V80"/><path class="dg-d" d="M630 55 H735 V130"/>
+    <text class="dg-wt" x="460" y="104">初期設定時のみ</text>
+  </svg>
+  </div>
+
+  <h3>作業形態</h3>
+  <p class="prose small" style="margin-top:0">表示する手順を絞り込みます。<span class="scope-tag">共有機</span>は 1 台の実機を交代で使う場合、<span class="scope-tag personal">個人機</span>は自分専用の実機がある場合の手順です。</p>
+  <div class="seg" role="group" aria-label="作業形態">
+    <button data-scope-btn="both" aria-pressed="true">両方を表示</button>
+    <button data-scope-btn="shared" aria-pressed="false">共有機を使う</button>
+    <button data-scope-btn="personal" aria-pressed="false">個人機を持っている</button>
+  </div>
+
+  <h3>作業者プロファイル</h3>
+  <div class="panel profile">
+    <label for="pName">名前（英小文字、ブランチ名に使う）<input type="text" id="pName" value="tanaka" autocomplete="off"></label>
+    <label for="pCom">Core2 の COM ポート<input type="text" id="pCom" value="COM5" autocomplete="off"></label>
+    <label for="pRobot">機体 ID<input type="text" id="pRobot" value="R1" autocomplete="off"></label>
+    <label for="pTopic">作業テーマ（英数とハイフン）<input type="text" id="pTopic" value="pitch-gain" autocomplete="off"></label>
+  </div>
+  <p class="small">機体 ID は実機に貼るラベルの名前です。例: 共有機は <code>R1</code>、個人機は <code>P-tanaka</code>。ログのファイル名と記録に使います。</p>
+</section>
+
+<!-- ============================================================ 01 -->
+<section id="s1">
+  <header><span class="num">01</span><div><h2>PC の環境構築</h2><p>各 PC で 1 回だけ。所要 30〜60 分（初回ビルドのダウンロード込み）</p></div></header>
+
+  <ol class="steps" data-group="setup">
+    <li><input type="checkbox" id="c-setup-git" aria-labelledby="t-setup-git"><span class="t" id="t-setup-git">Git for Windows を入れる</span>
+      <div class="b"><p><a href="https://git-scm.com/download/win" target="_blank" rel="noopener">git-scm.com</a> からインストーラを取得。途中の選択肢は既定のままで構いません。改行コードは既定の「Checkout Windows-style, commit Unix-style」を選びます。</p>
+      <p>インストール後、PowerShell で名前とメールを登録します（コミットに残る作者名です）。</p>
+      <div class="code" data-tpl='git config --global user.name "{NAME}"
+git config --global user.email "あなたのメールアドレス"
+git config --global core.longpaths true'></div>
+      <p class="small">GitHub へのログインは、初回の push 時にブラウザが開いて行われます（Git Credential Manager が同梱）。</p></div></li>
+
+    <li><input type="checkbox" id="c-setup-vscode" aria-labelledby="t-setup-vscode"><span class="t" id="t-setup-vscode">VS Code と PlatformIO IDE 拡張を入れる</span>
+      <div class="b"><p><a href="https://code.visualstudio.com/" target="_blank" rel="noopener">VS Code</a> をインストールし、拡張機能（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>）で <b>PlatformIO IDE</b> を検索して入れます。初回は PlatformIO Core（Python 込み）の自動セットアップに数分かかります。完了すると左端にアリの頭のアイコンが出ます。</p>
+      <p>Python を別途入れる必要はありません。PlatformIO が専用の Python を <code>%USERPROFILE%\.platformio\penv</code> に持っており、後述のロガーもそれを使います。</p></div></li>
+
+    <li><input type="checkbox" id="c-setup-driver" aria-labelledby="t-setup-driver"><span class="t" id="t-setup-driver">Core2 の USB ドライバを確認する</span>
+      <div class="b"><p>Core2 を USB-C で繋ぎ、デバイスマネージャーの「ポート (COM と LPT)」を開きます。製造時期で USB シリアル変換チップが違います。</p>
+      <div class="tbl"><table><thead><tr><th>表示名</th><th>チップ</th><th>対処</th></tr></thead><tbody>
+        <tr><td>Silicon Labs CP210x USB to UART Bridge (COMx)</td><td>CP2104（初期ロット）</td><td>表示されなければ Silicon Labs の CP210x VCP ドライバを入れる</td></tr>
+        <tr><td>USB-Enhanced-SERIAL CH9102 / CH343 (COMx)</td><td>CH9102F（以降のロット）</td><td>表示されなければ WCH の CH343/CH9102 ドライバを入れる</td></tr>
+        <tr><td>「ほかのデバイス」に黄色い ! が出る</td><td>どちらか</td><td>ドライバ未導入。上のどちらかを入れて挿し直す</td></tr>
+      </tbody></table></div>
+      <p>表示された COM 番号を、上の<a href="#s0">作業者プロファイル</a>に入れてください。</p>
+      <p class="small">何も出ない場合は、充電専用の USB ケーブルを疑います。データ通信対応のケーブルに替えてください。</p></div></li>
+
+    <li><input type="checkbox" id="c-setup-clone" aria-labelledby="t-setup-clone"><span class="t" id="t-setup-clone">リポジトリを clone して VS Code で開く</span>
+      <div class="b"><p>作業フォルダはパスに日本語やスペースを含まない場所にします（ツールチェーンが失敗することがあります）。</p>
+      <div class="code" data-tpl='mkdir C:\dev
+cd C:\dev
+git clone https://github.com/97113/Inverted-pendulum.git
+code Inverted-pendulum'></div>
+      <p>VS Code で開くと PlatformIO が <code>platformio.ini</code> を認識し、ESP32 のツールチェーンとライブラリ（M5Unified、Xbox コントローラ用）を自動で取得します。</p></div></li>
+
+    <li><input type="checkbox" id="c-setup-build" aria-labelledby="t-setup-build"><span class="t" id="t-setup-build">初回ビルドを通す</span>
+      <div class="b"><p>VS Code 下部のステータスバーの <b>✓（Build）</b> を押すか、PlatformIO のターミナルで実行します。</p>
+      <div class="code" data-tpl='pio run'></div>
+      <p>最後に <code>[SUCCESS]</code> が出れば環境構築は完了です。</p>
+      <div class="note"><strong><code>pio</code> が見つからないと言われたら</strong>通常の PowerShell には <code>pio</code> のパスが通っていません。VS Code 左の PlatformIO アイコン → <b>Quick Access › Miscellaneous › New Terminal</b> で開いたターミナルを使ってください。</div></div></li>
+
+    <li><input type="checkbox" id="c-setup-pc-tool" aria-labelledby="t-setup-pc-tool"><span class="t" id="t-setup-pc-tool">（モータ設定担当のみ）RobStride の PC ツールを用意する</span>
+      <div class="b"><p>モータの CAN ID 変更や単体の動作確認に使います。メーカー配布の PC 用ソフト（上位機ソフト）と、それに対応した USB-CAN アダプタが必要です。ソフト名と入手先は製品に付属の資料で確認してください。全員が入れる必要はなく、モータを設定する人の PC だけで構いません。</p></div></li>
+  </ol>
+</section>
+
+<!-- ============================================================ 02 -->
+<section id="s2">
+  <header><span class="num">02</span><div><h2>チームでの運用</h2><p>コードは GitHub で、実機は予約と引き継ぎで共有します</p></div></header>
+
+  <h3>ブランチのルール</h3>
+  <div class="tbl"><table><thead><tr><th>ブランチ</th><th>用途</th><th>決まりごと</th></tr></thead><tbody>
+    <tr><td><code>main</code></td><td>いつでも書き込んで動く版</td><td>直接 push しない。Pull Request でレビューしてから merge</td></tr>
+    <tr><td><code>feature/<span class="ph-inline" data-bind="NAME">tanaka</span>-<span data-bind="TOPIC">pitch-gain</span></code></td><td>機能追加・修正・ゲイン調整</td><td>1 テーマ 1 ブランチ。作業者名を含める</td></tr>
+  </tbody></table></div>
+
+  <h3>1 日の流れ</h3>
+  <ol class="steps" data-group="git">
+    <li><input type="checkbox" id="c-git-pull" aria-labelledby="t-git-pull"><span class="t" id="t-git-pull">最新の main から作業ブランチを作る</span>
+      <div class="b"><div class="code" data-tpl='git switch main
+git pull
+git switch -c feature/{NAME}-{TOPIC}'></div></div></li>
+    <li><input type="checkbox" id="c-git-commit" aria-labelledby="t-git-commit"><span class="t" id="t-git-commit">小さく区切ってコミットする</span>
+      <div class="b"><p>コミットメッセージには「何を変えたか」と、ゲイン変更なら「実機でどうだったか」を書きます。後から別の人が読んで追える記録になります。</p>
+      <div class="code" data-tpl='git add include/config.h
+git commit -m "kGainPitch を 18→21 に変更（{ROBOT} で振動が収まった）"'></div></div></li>
+    <li><input type="checkbox" id="c-git-push" aria-labelledby="t-git-push"><span class="t" id="t-git-push">push して Pull Request を作る</span>
+      <div class="b"><div class="code" data-tpl='git push -u origin feature/{NAME}-{TOPIC}'></div>
+      <p>GitHub の画面で Pull Request を作り、本文に「どの機体で検証したか」「ログのファイル名」を書きます。もう 1 人が確認してから merge します。</p></div></li>
+  </ol>
+
+  <div class="note warn"><strong>config.h の衝突に注意</strong>調整パラメータはすべて <code>include/config.h</code> に集まっているため、複数人が同時にゲインを触ると必ず衝突します。ゲイン調整は「今は誰が担当か」を決めて 1 人ずつ行い、終わったら早めに merge してください。</div>
+
+  <div data-scope="shared">
+    <h3><span class="scope-tag">共有機</span>実機を交代で使うときの決まり</h3>
+    <ol class="steps" data-group="shared">
+      <li><input type="checkbox" id="c-sh-book" aria-labelledby="t-sh-book"><span class="t" id="t-sh-book">使う前に予約する</span>
+        <div class="b"><p>チームの予約表（共有カレンダーや GitHub Issue など、チームで 1 か所に決める）に、機体 ID・時間帯・作業テーマを書きます。</p></div></li>
+      <li><input type="checkbox" id="c-sh-record" aria-labelledby="t-sh-record"><span class="t" id="t-sh-record">書き込んだ版を記録する</span>
+        <div class="b"><p>今のファームは画面にバージョンを出さないため、書き込んだ人がコミットを記録しておかないと、次の人は何が入っているか分かりません。書き込みの直後に次を実行し、出てきた値を予約表に残します。</p>
+        <div class="code" data-tpl='git rev-parse --short HEAD
+git status --short'></div>
+        <p class="small"><code>git status</code> に何か出る場合は、コミットしていない変更を書き込んでいます。その旨も記録してください。</p></div></li>
+      <li><input type="checkbox" id="c-sh-handover" aria-labelledby="t-sh-handover"><span class="t" id="t-sh-handover">返すときは main の版に戻す</span>
+        <div class="b"><p>次の人が「いつもの動き」から始められるよう、使い終わったら main を書き込んで返します。</p>
+        <div class="code" data-tpl='git switch main
+git pull
+pio run -t upload --upload-port {COM}'></div>
+        <p>DISARM してからバッテリを外し、バッテリ電圧と気づいた不具合を予約表に書いて終了です。</p></div></li>
+    </ol>
+  </div>
+
+  <div data-scope="personal">
+    <h3><span class="scope-tag personal">個人機</span>自分の機体の設定差分を管理する</h3>
+    <p class="prose">機体ごとに CAN Unit を挿すポート、モータの向き、車輪径、IMU の向きが違うことがあります。これらは <code>config.h</code> の値ですが、自分の機体の値をそのまま main に入れると、ほかの人の機体が動かなくなります。</p>
+    <ul class="prose">
+      <li>自分の機体固有の値は、リポジトリの <code>docs/</code> に機体ごとのメモ（例 <code>docs/robots/<span data-bind="ROBOT">R1</span>.md</code>）として残す</li>
+      <li>作業ブランチでは書き換えてよいが、Pull Request の前に共通値へ戻すか、差分が意図したものかレビューで確認する</li>
+      <li>恒久的な対策は<a href="#s8">今後の改善案</a>の「機体ごとのビルド設定」を参照</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ 03 -->
+<section id="s3">
+  <header><span class="num">03</span><div><h2>編集・ビルド・書込み</h2><p>VS Code のボタンでも、ターミナルのコマンドでも同じことができます</p></div></header>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3 style="margin-top:0">どこを編集するか</h3>
+      <div class="tbl"><table><tbody>
+        <tr><td><code>include/config.h</code></td><td>ゲイン、ピン、モータ ID、安全閾値。<b>調整はほぼここだけ</b></td></tr>
+        <tr><td><code>src/balance.cpp</code></td><td>制御則</td></tr>
+        <tr><td><code>src/main.cpp</code></td><td>タスク構成と状態遷移</td></tr>
+        <tr><td><code>src/ui.cpp</code></td><td>Core2 の画面表示</td></tr>
+        <tr><td><code>src/robstride.cpp</code></td><td>モータの CAN プロトコル</td></tr>
+      </tbody></table></div>
+      <p class="small">ゲインの意味と調整順は <code>docs/tuning.md</code>、配線は <code>docs/hardware.md</code> にあります。</p>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">VS Code 下部のボタン</h3>
+      <div class="tbl"><table><tbody>
+        <tr><td><b>✓</b></td><td>ビルド</td><td><code>pio run</code></td></tr>
+        <tr><td><b>→</b></td><td>書込み</td><td><code>pio run -t upload</code></td></tr>
+        <tr><td><b>🔌</b></td><td>シリアルモニタ</td><td><code>pio device monitor</code></td></tr>
+        <tr><td><b>🗑</b></td><td>クリーン</td><td><code>pio run -t clean</code></td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <h3>書込みの手順</h3>
+  <ol class="steps" data-group="flash">
+    <li><input type="checkbox" id="c-fl-safe" aria-labelledby="t-fl-safe"><span class="t" id="t-fl-safe">機体を安全な状態にする</span>
+      <div class="b"><p>書込み中と再起動直後はモータへの指令が途切れます。<b>車輪を浮かせる</b>か、モータの電源（バッテリ）を外してから書き込みます。</p></div></li>
+    <li><input type="checkbox" id="c-fl-port" aria-labelledby="t-fl-port"><span class="t" id="t-fl-port">COM ポートを確認する</span>
+      <div class="b"><div class="code" data-tpl='pio device list'></div>
+      <p class="small">複数の機器を繋いでいると、PlatformIO の自動選択が別の COM を選ぶことがあります。ポートは明示するのが確実です。</p></div></li>
+    <li><input type="checkbox" id="c-fl-upload" aria-labelledby="t-fl-upload"><span class="t" id="t-fl-upload">書き込む</span>
+      <div class="b"><div class="code" data-tpl='pio run -t upload --upload-port {COM}'></div>
+      <p>シリアルモニタやロガーがポートを開いたままだと失敗します。先に閉じてください（モニタは <kbd>Ctrl</kbd>+<kbd>C</kbd>）。</p></div></li>
+    <li><input type="checkbox" id="c-fl-check" aria-labelledby="t-fl-check"><span class="t" id="t-fl-check">起動を確認する</span>
+      <div class="b"><p>Core2 が再起動し、画面が <code>CALIBRATING</code> → <code>DISARMED</code> に進めば成功です。較正の約 2 秒間は機体を動かさないでください。</p></div></li>
+  </ol>
+</section>
+
+<!-- ============================================================ 04 -->
+<section id="s4">
+  <header><span class="num">04</span><div><h2>モータの操作</h2><p>目的によって経路が 2 つあります。同時には使いません</p></div></header>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3 style="margin-top:0">A. PC ツールから直接</h3>
+      <p class="small">PC → USB-CAN アダプタ → モータ</p>
+      <ul>
+        <li>CAN ID の変更（出荷時は 2 台とも 127）</li>
+        <li>ボーレート 1 Mbps の確認</li>
+        <li>1 台ずつの回転確認、故障ビットや温度の読み出し</li>
+      </ul>
+      <p class="small">新しいモータを入れたとき、交換したとき、故障を切り分けるときに使います。</p>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">B. Core2 のファームから</h3>
+      <p class="small">Xbox コントローラ / 本体ボタン → Core2 → CAN Unit → モータ</p>
+      <ul>
+        <li>ARM / DISARM、倒立制御、走行と旋回</li>
+        <li>普段の検証はすべてこちら</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note danger"><strong>2 つの経路を同時に繋がない</strong>USB-CAN アダプタを使うときは Core2 の電源を切るか、CAN Unit の Grove ケーブルを抜いてください。Core2 は起動時と動作中にモータへ指令を送り続けるため、PC ツールの操作と混ざって予期しない動きになります。</div>
+
+  <h3>A. 初期設定（モータを入れたら最初に 1 回）</h3>
+  <ol class="steps" data-group="motorinit">
+    <li><input type="checkbox" id="c-mi-one" aria-labelledby="t-mi-one"><span class="t" id="t-mi-one">モータを 1 台だけ USB-CAN に繋ぐ</span>
+      <div class="b"><p>2 台とも ID 127 のままだと区別できないため、必ず 1 台ずつ設定します。車輪は外すか浮かせておきます。</p></div></li>
+    <li><input type="checkbox" id="c-mi-id" aria-labelledby="t-mi-id"><span class="t" id="t-mi-id">CAN ID を書き込む</span>
+      <div class="b"><p>左を <b>1</b>、右を <b>2</b> にします（<code>config.h</code> の <code>kMotorIdLeft</code> / <code>kMotorIdRight</code> と一致させる）。ボーレートが 1 Mbps であることも確認します。モータ本体に ID のラベルを貼っておくと後で迷いません。</p></div></li>
+    <li><input type="checkbox" id="c-mi-spin" aria-labelledby="t-mi-spin"><span class="t" id="t-mi-spin">低速で回して確認する</span>
+      <div class="b"><p>PC ツールの速度モードなどで、ゆっくり正転・逆転することを確認します。故障ビットが立っていないこと、温度が読めることも見ます。</p></div></li>
+    <li><input type="checkbox" id="c-mi-term" aria-labelledby="t-mi-term"><span class="t" id="t-mi-term">終端抵抗を設定して機体に戻す</span>
+      <div class="b"><p>バスの末端になるモータだけ終端を ON、途中のモータは OFF。CAN Unit 側には付属の 120 Ω を付けます。</p></div></li>
+  </ol>
+
+  <h3>B. ファームからの操作</h3>
+  <div class="tbl"><table><thead><tr><th>操作</th><th>動作</th></tr></thead><tbody>
+    <tr><td>コントローラ <b>A</b> / 本体 <b>BtnA</b></td><td>ARM（起立開始）。±5° 以内でないと受け付けない</td></tr>
+    <tr><td>コントローラ <b>B</b> / 本体 <b>BtnB</b></td><td>DISARM（モータ停止）</td></tr>
+    <tr><td>本体 <b>BtnC</b></td><td>ジャイロ再較正と走行距離のリセット</td></tr>
+    <tr><td>左スティック上下 / 右スティック左右</td><td>前進・後退 / 旋回</td></tr>
+    <tr><td><b>RB</b> 押しっぱなし</td><td>速度リミッタ解除（通常は最大値の 50 %）</td></tr>
+  </tbody></table></div>
+  <p class="small">転倒（35° 超）、CAN の途絶やバスオフ、モータの故障ビットで自動停止します。母線電圧が 13.0 V 未満だと ARM を拒否します。</p>
+
+  <h3>CAN Unit のポート設定を作る</h3>
+  <p class="prose small">CAN Unit を挿した Grove ポートとモータ ID を選ぶと、<code>config.h</code> に書く値を出します。</p>
+  <div class="panel profile">
+    <label for="gPort">CAN Unit を挿したポート
+      <select id="gPort"><option value="C">PORT.C（青・既定）</option><option value="B">PORT.B（黒）</option><option value="A">PORT.A（赤・非推奨）</option></select></label>
+    <label for="gL">左モータの ID<input type="text" id="gL" value="1" inputmode="numeric" autocomplete="off"></label>
+    <label for="gR">右モータの ID<input type="text" id="gR" value="2" inputmode="numeric" autocomplete="off"></label>
+  </div>
+  <div class="code" id="genOut"><div class="lbl">include/config.h</div><pre></pre><button class="copy" type="button">コピー</button></div>
+  <p class="small" id="genMsg"></p>
+</section>
+
+<!-- ============================================================ 05 -->
+<section id="s5">
+  <header><span class="num">05</span><div><h2>データロギング</h2><p>手軽な順に 3 段階。検証の目的に合わせて選びます</p></div></header>
+
+  <div class="tabs" role="tablist" aria-label="ロギングの方法">
+    <button role="tab" aria-selected="true" data-tab="l1" id="tab-l1">1. 画面を撮る</button>
+    <button role="tab" aria-selected="false" data-tab="l2" id="tab-l2">2. シリアルモニタを保存</button>
+    <button role="tab" aria-selected="false" data-tab="l3" id="tab-l3">3. CSV ロガー</button>
+  </div>
+
+  <div class="panel" data-pane="l1" role="tabpanel" aria-labelledby="tab-l1">
+    <p>追加の準備なしでできる方法です。Core2 の画面には姿勢角、速度、走行距離、trim、車輪トルク指令、モータ温度、母線電圧が 10 Hz で表示されます。スマートフォンで画面と機体を一緒に動画撮影しておくと、症状とパラメータの対応が後から確認できます。</p>
+    <p class="small">数値の時系列を比べたいときは、2 か 3 に進んでください。</p>
+  </div>
+
+  <div class="panel" data-pane="l2" role="tabpanel" aria-labelledby="tab-l2" hidden>
+    <p>PlatformIO のシリアルモニタに、時刻付きでファイルへ保存するフィルタがあります。</p>
+    <div class="code" data-tpl='pio device monitor -p {COM} -b 115200 --filter time --filter log2file'></div>
+    <p>カレントフォルダに <code>platformio-device-monitor-日付-時刻.log</code> が作られます。<kbd>Ctrl</kbd>+<kbd>C</kbd> で終了。</p>
+    <div class="note warn"><strong>今のファームはテレメトリを出していません</strong><code>Serial.begin()</code> の初期化だけで、定期的な出力はありません。この方法で記録できるのは起動時のログやクラッシュ時の情報です。数値を記録するには、3 の「ファームに追加する出力」を入れてください。</div>
+    <p class="small">クラッシュの解析には <code>--filter esp32_exception_decoder</code> を追加すると、スタックトレースが関数名で表示されます。</p>
+  </div>
+
+  <div class="panel" data-pane="l3" role="tabpanel" aria-labelledby="tab-l3" hidden>
+    <p>ファームから CSV 形式で 50 Hz 出力し、PC 側の Python スクリプトで受けてファイルに保存します。Excel や Python でそのままグラフにできます。</p>
+
+    <h3>ファームに追加する出力（例）</h3>
+    <p><code>src/main.cpp</code> の <code>slowTask()</code> の中、<code>gamepad::read()</code> の後に追加します。制御タスク（200 Hz）ではなく低速タスク（50 Hz）で出すのは、送信待ちで制御周期を乱さないためです。1 行約 80 バイト × 50 Hz で、115200 bps の 4 割ほどに収まります。</p>
+    <div class="code" data-tpl='    // ---- テレメトリを CSV で出力 (50 Hz) ----
+    {
+      ui::Telemetry t;
+      taskENTER_CRITICAL(&amp;g_tlmMux);
+      t = g_tlm;
+      taskEXIT_CRITICAL(&amp;g_tlmMux);
+      Serial.printf("T,%lu,%d,%.3f,%.2f,%.3f,%.3f,%.2f,%.2f,%.3f,%.3f,%.2f\n",
+                    (unsigned long)millis(), (int)t.state,
+                    t.pitchDeg, t.pitchRateDps, t.wheelVel, t.wheelPos,
+                    t.cmdForward, t.cmdTurn, t.outLeft, t.outRight,
+                    t.busVoltage);
+    }'><div class="lbl">src/main.cpp · slowTask()</div></div>
+    <p class="small"><code>state</code> の値は 0=Booting, 1=Calibrating, 2=Disarmed, 3=Armed, 4=Fallen, 5=Fault（<code>src/ui.h</code> の並び順）。</p>
+
+    <h3>PC 側のロガー</h3>
+    <p>次の内容を <code>tools/serial_logger.py</code> として保存します。PlatformIO 同梱の Python に pyserial が入っているので、追加のインストールは不要です。</p>
+    <div class="code" data-tpl='"""Core2 の "T," 行を受け取り logs/ に CSV で保存する。Ctrl+C で終了。
+使い方: python tools/serial_logger.py COM5 R1 tanaka
+"""
+import csv
+import datetime
+import os
+import subprocess
+import sys
+
+import serial
+
+port = sys.argv[1] if len(sys.argv) &gt; 1 else "COM5"
+robot = sys.argv[2] if len(sys.argv) &gt; 2 else "R1"
+who = sys.argv[3] if len(sys.argv) &gt; 3 else "anon"
+
+try:
+    rev = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+except Exception:
+    rev = "nogit"
+
+os.makedirs("logs", exist_ok=True)
+stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+path = f"logs/{stamp}_{robot}_{who}_{rev}.csv"
+
+cols = ["pc_time", "ms", "state", "pitch_deg", "pitch_rate_dps", "vel_mps", "pos_m",
+        "cmd_fwd", "cmd_turn", "out_l_nm", "out_r_nm", "vbus_v"]
+
+ser = serial.Serial()
+ser.port, ser.baudrate, ser.timeout = port, 115200, 1
+ser.dtr = False  # ポートを開いたときの自動リセットを避ける
+ser.rts = False
+ser.open()
+
+rows = 0
+with open(path, "w", newline="", encoding="utf-8") as f:
+    w = csv.writer(f)
+    w.writerow(cols)
+    print(f"記録中: {path}  (Ctrl+C で終了)")
+    try:
+        while True:
+            line = ser.readline().decode("utf-8", "replace").strip()
+            if not line.startswith("T,"):
+                if line:
+                    print("  >", line)  # T, 以外のログはそのまま表示
+                continue
+            pc = datetime.datetime.now().isoformat(timespec="milliseconds")
+            w.writerow([pc] + line.split(",")[1:])
+            rows += 1
+            if rows % 250 == 0:
+                print(f"  {rows} 行")
+    except KeyboardInterrupt:
+        pass
+ser.close()
+print(f"保存しました: {path}  ({rows} 行)")'><div class="lbl">tools/serial_logger.py</div></div>
+
+    <p>実行（リポジトリのフォルダで）:</p>
+    <div class="code" data-tpl='&amp; "$env:USERPROFILE\.platformio\penv\Scripts\python.exe" tools\serial_logger.py {COM} {ROBOT} {NAME}'><div class="lbl">PowerShell</div></div>
+    <p>ファイル名は <code>logs/日付_時刻_<span data-bind="ROBOT">R1</span>_<span data-bind="NAME">tanaka</span>_コミット.csv</code> になります。どの機体で、誰が、どの版のファームで取ったログかが名前から分かります。</p>
+    <div class="note warn"><strong>ARM 中にポートを開かない</strong>Windows では COM ポートを開いた瞬間に Core2 がリセットされることがあります（スクリプトでは抑止していますが、ドライバによっては防げません）。ロガーは DISARMED の状態で起動してから ARM してください。</div>
+    <p class="small"><code>logs/</code> は容量が増えるので Git に入れず、共有ドライブなどにまとめるのがおすすめです（<code>.gitignore</code> に <code>logs/</code> を追加）。Pull Request にはファイル名だけ書けば追跡できます。</p>
+  </div>
+</section>
+
+<!-- ============================================================ 06 -->
+<section id="s6">
+  <header><span class="num">06</span><div><h2>実機検証</h2><p>台上 → 床の順に。台上の項目をすべて通すまで床に降ろしません</p></div></header>
+
+  <h3>台上チェック（車輪を浮かせて）</h3>
+  <ol class="steps" data-group="bench" id="benchList">
+    <li><input type="checkbox" id="c-b-1" aria-labelledby="t-b-1"><span class="t" id="t-b-1">画面が CALIBRATING → DISARMED に進む</span>
+      <div class="b"><p>較正中は機体に触れない。</p></div></li>
+    <li><input type="checkbox" id="c-b-2" aria-labelledby="t-b-2"><span class="t" id="t-b-2">右上の CAN が OK</span>
+      <div class="b"><p><code>OFF</code> ならバス配線、終端抵抗、TX/RX の入れ替わりを疑う。</p></div></li>
+    <li><input type="checkbox" id="c-b-3" aria-labelledby="t-b-3"><span class="t" id="t-b-3">下段のモータ表示が M1 / M2 とも ok で温度が出る</span>
+      <div class="b"><p><code>--</code> のままなら CAN ID、ボーレート、ピン設定を確認。</p></div></li>
+    <li><input type="checkbox" id="c-b-4" aria-labelledby="t-b-4"><span class="t" id="t-b-4">VBUS が白か橙（赤ではない）</span>
+      <div class="b"><p>赤は 13.0 V 未満で ARM できない。バッテリを充電する。</p></div></li>
+    <li><input type="checkbox" id="c-b-5" aria-labelledby="t-b-5"><span class="t" id="t-b-5">PAD が OK</span>
+      <div class="b"><p>Xbox コントローラのペアリングボタンを長押しして待つ。</p></div></li>
+    <li><input type="checkbox" id="c-b-6" aria-labelledby="t-b-6"><span class="t" id="t-b-6">前に傾けると角度がプラスになる</span>
+      <div class="b"><p>逆なら <code>kAccelPitchNumSign</code> と <code>kGyroPitchSign</code> を反転。</p></div></li>
+    <li><input type="checkbox" id="c-b-7" aria-labelledby="t-b-7"><span class="t" id="t-b-7">浮かせたまま ARM し、左スティック前で両輪が前進方向に回る</span>
+      <div class="b"><p>逆なら <code>kMotorDirLeft</code> / <code>kMotorDirRight</code> の符号。確認後すぐ DISARM。</p></div></li>
+    <li><input type="checkbox" id="c-b-8" aria-labelledby="t-b-8"><span class="t" id="t-b-8">B ボタンと本体 BtnB で確実に止まる</span>
+      <div class="b"><p>非常停止の手段を、作業する全員が実際に一度押して確かめる。</p></div></li>
+  </ol>
+  <div class="gate" id="gate" aria-live="polite"><span class="lamp"></span><span id="gateText">台上チェックが終わっていません。床に降ろさないでください</span></div>
+
+  <h3>床での検証</h3>
+  <ol class="steps" data-group="floor">
+    <li><input type="checkbox" id="c-f-1" aria-labelledby="t-f-1"><span class="t" id="t-f-1">紐を付けるか、転倒しても壊れない場所で行う</span>
+      <div class="b"><p><code>kTorqueLimit</code> は最初 2.0 N·m 程度に下げておく。</p></div></li>
+    <li><input type="checkbox" id="c-f-2" aria-labelledby="t-f-2"><span class="t" id="t-f-2">ロガーを起動してから ARM する</span>
+      <div class="b"><p>記録者と操縦者を分けると、操縦者は機体から目を離さずに済みます。</p></div></li>
+    <li><input type="checkbox" id="c-f-3" aria-labelledby="t-f-3"><span class="t" id="t-f-3">docs/tuning.md の手順 1 → 4 の順にゲインを詰める</span>
+      <div class="b"><p>姿勢だけ立たせる → 流れを止める → 重心オフセットの自動補正 → 操縦感。1 回に変えるパラメータは 1 つだけにして、変更とログ名をコミットメッセージに残す。</p></div></li>
+    <li><input type="checkbox" id="c-f-4" aria-labelledby="t-f-4"><span class="t" id="t-f-4">結果を Pull Request に書く</span>
+      <div class="b"><p>機体 ID、ログのファイル名、うまくいった点と残った症状を書いておくと、次の作業者がそこから続けられます。</p></div></li>
+  </ol>
+</section>
+
+<!-- ============================================================ 07 -->
+<section id="s7">
+  <header><span class="num">07</span><div><h2>トラブル対処</h2><p>症状で絞り込めます</p></div></header>
+  <label for="tsq" class="small">症状を入力</label>
+  <input type="text" id="tsq" placeholder="例: COM、書込み、CAN、振動" autocomplete="off" style="margin:4px 0 12px;max-width:420px">
+  <div id="tsList">
+    <details class="ts"><summary>デバイスマネージャーに COM ポートが出ない<span class="cat">PC</span></summary><div>USB ケーブルが充電専用の可能性が高いです。データ通信対応のケーブルに替えてください。それでも出ない場合は <a href="#s1">01 の 3</a> のドライバを入れます。</div></details>
+    <details class="ts"><summary>書込みで「Access is denied」「could not open port」<span class="cat">書込み</span></summary><div>ほかのアプリがポートを開いています。シリアルモニタ、ロガー、別の VS Code ウィンドウ、Arduino IDE などを閉じてください。Windows では COM ポートを同時に開けるのは 1 つのアプリだけです。</div></details>
+    <details class="ts"><summary>書込みが途中で止まる、「Failed to connect to ESP32」<span class="cat">書込み</span></summary><div>ケーブルや USB ハブで速度が出ていない可能性があります。PC 本体の USB 端子に直接挿し、<code>platformio.ini</code> の <code>upload_speed</code> を 1500000 から 921600 に下げて試します（下げた場合は自分のブランチだけにとどめ、main には入れない）。</div></details>
+    <details class="ts"><summary><code>pio</code> コマンドが見つからない<span class="cat">PC</span></summary><div>PlatformIO のターミナル（Quick Access › New Terminal）から実行してください。通常の PowerShell には PATH が通っていません。</div></details>
+    <details class="ts"><summary>ビルドがパス関係のエラーで失敗する<span class="cat">ビルド</span></summary><div>リポジトリを日本語やスペースを含むフォルダ（OneDrive 配下のデスクトップなど）に置いていないか確認します。<code>C:\dev</code> のような短いパスに clone し直すと解決することが多いです。</div></details>
+    <details class="ts"><summary>git pull で config.h が衝突した<span class="cat">Git</span></summary><div>VS Code のソース管理画面で衝突箇所を開き、「現在の変更」「入力側の変更」のどちらを残すか選びます。ゲイン値の衝突は、その値で実機検証した人に確認してから決めてください。</div></details>
+    <details class="ts"><summary>画面の CAN が OFF のまま<span class="cat">CAN</span></summary><div>CAN Unit のポートと <code>kCanTxPin</code> / <code>kCanRxPin</code> の一致、CAN_H / CAN_L の配線、両端の 120 Ω 終端を確認します。<a href="#s4">04 のポート設定</a>で値を作り直せます。</div></details>
+    <details class="ts"><summary>モータ表示が -- のまま<span class="cat">CAN</span></summary><div>モータの CAN ID が 1 と 2 になっているか（出荷時は 127）、ボーレートが 1 Mbps か確認します。PC ツールで 1 台ずつ確認してください。</div></details>
+    <details class="ts"><summary>ロガーを起動したら Core2 が再起動した<span class="cat">ロギング</span></summary><div>COM ポートを開くと ESP32 の自動リセット回路が働くことがあります。必ず DISARMED の状態でロガーを起動してから ARM してください。</div></details>
+    <details class="ts"><summary>ロガーの CSV が空<span class="cat">ロギング</span></summary><div>ファームに「T,」行を出力するコードが入っていないか、ボーレートが一致していません。<a href="#s5">05 の 3</a> のコードを入れて書き込み直し、シリアルモニタで <code>T,...</code> が流れていることを先に確認します。</div></details>
+    <details class="ts"><summary>コントローラが繋がらない（PAD が OK にならない）<span class="cat">操縦</span></summary><div>Xbox コントローラのペアリングボタンを長押しします。ほかの PC やスマートフォンと繋がっていると取られるので、そちらの Bluetooth を切ります。共有機で複数のコントローラがある場合は <code>kGamepadAddress</code> に MAC アドレスを書いて固定できます。</div></details>
+    <details class="ts"><summary>ARM 直後に一気に倒れる<span class="cat">制御</span></summary><div>姿勢角かモータ方向の符号が逆です。<a href="#s6">06 の台上チェック</a>の 6 と 7 をやり直してください。</div></details>
+    <details class="ts"><summary>高周波でカタカタ振動する<span class="cat">制御</span></summary><div><code>kGainPitch</code> か <code>kGainPitchRate</code> が高すぎます。2 割ほど下げます。</div></details>
+    <details class="ts"><summary>周期 1〜2 秒で前後に揺れる<span class="cat">制御</span></summary><div><code>kGainVel</code> か <code>kGainPos</code> が高すぎます。</div></details>
+    <details class="ts"><summary>倒れる速さに車輪が追いつかない<span class="cat">電源</span></summary><div>母線電圧が低いとモータの最高回転数が落ちます。VBUS を確認し、バッテリの直列数を見直してください（<code>docs/hardware.md</code> の検討表）。</div></details>
+  </div>
+  <p class="small" id="tsNone" hidden>該当する項目がありません。<code>docs/tuning.md</code> の症状別の表も確認してください。</p>
+</section>
+
+<!-- ============================================================ 08 -->
+<section id="s8">
+  <header><span class="num">08</span><div><h2>今後の改善案</h2><p>現状のリポジトリにはまだない仕組みです。必要になったら順に検討してください</p></div></header>
+  <div class="tbl"><table><thead><tr><th>案</th><th>内容</th><th>効果</th></tr></thead><tbody>
+    <tr><td><b>ファームの版を画面に出す</b></td><td>ビルド時に Git のコミットハッシュを埋め込み、DISARMED 画面に表示する（PlatformIO の extra_scripts で <code>-DGIT_REV=...</code> を渡す）</td><td>共有機で「何が入っているか」の記録漏れがなくなる</td></tr>
+    <tr><td><b>ロガーをリポジトリに入れる</b></td><td>05 のテレメトリ出力と <code>tools/serial_logger.py</code> を正式に追加し、<code>logs/</code> を .gitignore に入れる</td><td>全員が同じ形式でログを取れる</td></tr>
+    <tr><td><b>PC 用 GUI アプリ</b></td><td>シリアル経由で ARM/DISARM・ゲイン変更・リアルタイムグラフ・CSV 保存を 1 画面で行う（Python + PySide6、またはブラウザの Web Serial API）。ファーム側にコマンド受付が必要</td><td>書き直し・再書込みなしでゲインを試せる</td></tr>
+    <tr><td><b>機体ごとのビルド設定</b></td><td><code>platformio.ini</code> に <code>[env:R1]</code> <code>[env:P-tanaka]</code> のような環境を作り、ピンやモータ方向をビルドフラグで切り替える（<code>config.h</code> 側を <code>#ifndef</code> で上書き可能にする）</td><td>個人機と共有機の設定差分で main が壊れない</td></tr>
+    <tr><td><b>改行コードの統一</b></td><td><code>.gitattributes</code> に <code>* text=auto eol=lf</code> を追加</td><td>Windows の改行で差分が膨らむのを防ぐ</td></tr>
+    <tr><td><b>CI でビルド確認</b></td><td>GitHub Actions で Pull Request ごとに <code>pio run</code> を実行</td><td>ビルドが通らない変更が main に入らない</td></tr>
+  </tbody></table></div>
+</section>
+
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var store = {
+    get:function(k,d){try{var v=localStorage.getItem("ipguide:"+k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
+    set:function(k,v){try{localStorage.setItem("ipguide:"+k,JSON.stringify(v));}catch(e){}}
+  };
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  var toastEl=document.getElementById("toast"),toastT;
+  function toast(m){toastEl.textContent=m;toastEl.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){toastEl.classList.remove("show");},1600);}
+
+  /* ---- profile & templated code ---- */
+  var fields={NAME:"pName",COM:"pCom",ROBOT:"pRobot",TOPIC:"pTopic"};
+  var prof=store.get("profile",{});
+  Object.keys(fields).forEach(function(k){var el=document.getElementById(fields[k]);if(prof[k])el.value=prof[k];
+    el.addEventListener("input",function(){prof[k]=el.value.trim();store.set("profile",prof);renderTpl();});});
+  function val(k){var v=document.getElementById(fields[k]).value.trim();return v||document.getElementById(fields[k]).defaultValue;}
+  var codes=[].slice.call(document.querySelectorAll(".code[data-tpl]"));
+  codes.forEach(function(c){var pre=document.createElement("pre");c.appendChild(pre);
+    var b=document.createElement("button");b.className="copy";b.type="button";b.textContent="コピー";c.appendChild(b);});
+  function renderTpl(){
+    codes.forEach(function(c){var t=c.getAttribute("data-tpl");var plain=t,html=esc(t);
+      Object.keys(fields).forEach(function(k){var v=val(k);plain=plain.split("{"+k+"}").join(v);
+        html=html.split("{"+k+"}").join('<span class="ph">'+esc(v)+'</span>');});
+      c.querySelector("pre").innerHTML=html;c._plain=plain;});
+    [].forEach.call(document.querySelectorAll("[data-bind]"),function(s){s.textContent=val(s.getAttribute("data-bind"));});
+  }
+  document.addEventListener("click",function(e){
+    var b=e.target.closest("button.copy");if(!b)return;
+    var c=b.closest(".code");var text=c._plain!=null?c._plain:c.querySelector("pre").textContent;
+    function fallback(){var r=document.createRange();r.selectNodeContents(c.querySelector("pre"));var s=getSelection();s.removeAllRanges();s.addRange(r);toast("選択しました。Ctrl+C でコピーしてください");}
+    try{navigator.clipboard.writeText(text).then(function(){toast("コピーしました");},fallback);}catch(err){fallback();}
+  });
+
+  /* ---- scope filter ---- */
+  var scope=store.get("scope","both");
+  function applyScope(s){scope=s;store.set("scope",s);
+    [].forEach.call(document.querySelectorAll("[data-scope-btn]"),function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-scope-btn")===s));});
+    [].forEach.call(document.querySelectorAll("[data-scope]"),function(el){el.hidden=!(s==="both"||el.getAttribute("data-scope")===s);});
+    updateProgress();}
+  [].forEach.call(document.querySelectorAll("[data-scope-btn]"),function(b){b.addEventListener("click",function(){applyScope(b.getAttribute("data-scope-btn"));});});
+
+  /* ---- checklists ---- */
+  var checks=store.get("checks",{});
+  var boxes=[].slice.call(document.querySelectorAll("ol.steps input[type=checkbox]"));
+  boxes.forEach(function(cb){cb.checked=!!checks[cb.id];cb.closest("li").classList.toggle("checked",cb.checked);
+    cb.addEventListener("change",function(){checks[cb.id]=cb.checked;store.set("checks",checks);cb.closest("li").classList.toggle("checked",cb.checked);updateProgress();});});
+  function visible(el){return !el.closest("[hidden]");}
+  function updateProgress(){
+    var vis=boxes.filter(visible);var done=vis.filter(function(b){return b.checked;}).length;
+    var pct=vis.length?Math.round(done/vis.length*100):0;
+    document.getElementById("pct").textContent=pct;document.getElementById("cnt").textContent=done+" / "+vis.length;
+    document.getElementById("bar").style.width=pct+"%";
+    [].forEach.call(document.querySelectorAll("#nav a"),function(a){var sec=document.querySelector(a.getAttribute("href"));
+      var bs=[].slice.call(sec.querySelectorAll("ol.steps input[type=checkbox]")).filter(visible);
+      var m=a.querySelector(".done-mark");if(!m){m=document.createElement("span");m.className="done-mark";a.appendChild(m);}
+      var d=bs.filter(function(b){return b.checked;}).length;m.textContent=bs.length?(d===bs.length?"✓":d+"/"+bs.length):"";});
+    var bench=[].slice.call(document.querySelectorAll("#benchList input"));var ok=bench.every(function(b){return b.checked;});
+    var g=document.getElementById("gate");g.classList.toggle("ready",ok);
+    document.getElementById("gateText").textContent=ok?"台上チェック完了。床での検証に進めます":"台上チェックが終わっていません（"+bench.filter(function(b){return b.checked;}).length+" / "+bench.length+"）。床に降ろさないでください";
+  }
+  var rc=document.getElementById("resetChecks"),rcf=document.getElementById("resetConfirm");
+  rc.addEventListener("click",function(){rc.hidden=true;rcf.hidden=false;});
+  document.getElementById("resetNo").addEventListener("click",function(){rc.hidden=false;rcf.hidden=true;});
+  document.getElementById("resetYes").addEventListener("click",function(){checks={};store.set("checks",checks);
+    boxes.forEach(function(b){b.checked=false;b.closest("li").classList.remove("checked");});rc.hidden=false;rcf.hidden=true;updateProgress();toast("チェックを外しました");});
+
+  /* ---- tabs ---- */
+  var tabs=[].slice.call(document.querySelectorAll("[data-tab]"));
+  function selTab(id){tabs.forEach(function(t){t.setAttribute("aria-selected",String(t.getAttribute("data-tab")===id));});
+    [].forEach.call(document.querySelectorAll("[data-pane]"),function(p){p.hidden=p.getAttribute("data-pane")!==id;});store.set("tab",id);}
+  tabs.forEach(function(t){t.addEventListener("click",function(){selTab(t.getAttribute("data-tab"));});});
+  selTab(store.get("tab","l1"));
+
+  /* ---- config generator ---- */
+  var pins={C:{tx:14,rx:13,name:"PORT.C 黄/白"},B:{tx:26,rx:36,name:"PORT.B 黄/白"},A:{tx:32,rx:33,name:"PORT.A 黄/白"}};
+  function gen(){var p=pins[document.getElementById("gPort").value];
+    var l=parseInt(document.getElementById("gL").value,10),r=parseInt(document.getElementById("gR").value,10);
+    var msg=[];
+    if(!(l>=1&&l<=127)||!(r>=1&&r<=127))msg.push("モータ ID は 1〜127 の整数にしてください。");
+    else if(l===r)msg.push("左右の ID が同じです。別々の値にしてください。");
+    else if(l===253||r===253)msg.push("ID 253 (0xFD) はホスト ID と衝突します。");
+    if(document.getElementById("gPort").value==="A")msg.push("PORT.A は内蔵 I2C と同じポートで、ほかの I2C ユニットと同時に使えません。");
+    if(document.getElementById("gPort").value==="B")msg.push("G36 は入力専用ですが RX 側なので問題ありません。");
+    var lv=isNaN(l)?"?":l,rv=isNaN(r)?"?":r;
+    var txt="constexpr int      kCanRxPin        = "+p.rx+";     // "+p.name.replace("黄/白","白")+"\n"+
+            "constexpr int      kCanTxPin        = "+p.tx+";     // "+p.name.replace("黄/白","黄")+"\n\n"+
+            "constexpr uint8_t kMotorIdLeft  = "+lv+";\n"+
+            "constexpr uint8_t kMotorIdRight = "+rv+";";
+    var o=document.getElementById("genOut");o.querySelector("pre").textContent=txt;o._plain=txt;
+    document.getElementById("genMsg").textContent=msg.join(" ");}
+  ["gPort","gL","gR"].forEach(function(id){document.getElementById(id).addEventListener("input",gen);document.getElementById(id).addEventListener("change",gen);});
+
+  /* ---- troubleshooting filter ---- */
+  var q=document.getElementById("tsq"),items=[].slice.call(document.querySelectorAll("#tsList details"));
+  q.addEventListener("input",function(){var s=q.value.trim().toLowerCase();var n=0;
+    items.forEach(function(d){var hit=!s||d.textContent.toLowerCase().indexOf(s)>=0;d.hidden=!hit;if(hit)n++;if(s&&hit)d.open=true;});
+    document.getElementById("tsNone").hidden=n>0;});
+
+  /* ---- nav highlight ---- */
+  var links=[].slice.call(document.querySelectorAll("#nav a"));
+  if("IntersectionObserver" in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){
+    links.forEach(function(a){a.classList.toggle("active",a.getAttribute("href")==="#"+e.target.id);});}});},{rootMargin:"-30% 0px -60% 0px"});
+    [].forEach.call(document.querySelectorAll("main>section"),function(s){io.observe(s);});}
+
+  renderTpl();gen();applyScope(scope);
+})();
+</script>
+</body>
+</html>

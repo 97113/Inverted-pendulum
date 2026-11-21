@@ -114,6 +114,7 @@ BLE のスキャンは内部で待ちが入るため、制御ループとは必�
 
 - [docs/hardware.md](docs/hardware.md) — 配線、電源、電池の直列数、Grove ポートと GPIO、初回通電チェック
 - [docs/tuning.md](docs/tuning.md) — 制御ゲインの調整手順と症状別の対処
+- [docs/dev-environment-guide.html](docs/dev-environment-guide.html) — 複数人・Windows PC での開発環境構築と運用の対話型チュートリアル（ブラウザで開く）
 
 ---
 
